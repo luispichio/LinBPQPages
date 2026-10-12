@@ -1,0 +1,20 @@
+R:261010/1201Z @:TSTBBS.LOCAL $:TSTBBS
+
+From: sender@example.invalid
+To: member@example.invalid
+Subject: MIME fixture
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="bpq-pages-test"
+
+--bpq-pages-test
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Texto de prueba: =C3=A1gil y seguro.
+--bpq-pages-test
+Content-Type: application/octet-stream; name="nota.bin"
+Content-Disposition: attachment; filename="nota.bin"
+Content-Transfer-Encoding: base64
+
+AQIDBA==
+--bpq-pages-test--

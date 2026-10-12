@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>LinBPQ Pages</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="shell">
+    <section id="login-view" class="login-card card" aria-labelledby="login-title">
+      <h1 id="login-title" class="brand-mark">LinBPQ Pages</h1>
+      <p class="muted" data-i18n="login.subtitle">Acceso a la instancia LinBPQ</p>
+      <form id="login-form" class="stack">
+        <label for="login-callsign" data-i18n="login.callsign">Callsign</label>
+        <input id="login-callsign" name="callsign" autocomplete="username" required maxlength="32">
+        <label for="login-password" data-i18n="login.password">Contraseña</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+        <button class="primary" type="submit" data-i18n="login.submit">Ingresar</button>
+        <p id="login-error" class="error" role="alert" hidden></p>
+      </form>
+      <label class="language-picker">
+        <span data-i18n="language">Idioma</span>
+        <select id="login-language" data-i18n-aria-label="language" aria-label="Idioma">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+    </section>
+
+    <section id="app-view" aria-labelledby="app-title" hidden>
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">LinBPQ / BBS</div>
+          <h1 id="app-title" data-i18n="app.title">Panel de LinBPQ</h1>
+        </div>
+        <div class="topbar-actions">
+          <span id="current-user" class="user-badge"></span>
+          <label class="language-picker compact">
+            <span data-i18n="language">Idioma</span>
+            <select id="app-language" data-i18n-aria-label="language" aria-label="Idioma">
+              <option value="es">ES</option>
+              <option value="en">EN</option>
+            </select>
+          </label>
+          <button id="logout-button" class="secondary" type="button" data-i18n="nav.logout">Salir</button>
+        </div>
+      </header>
+
+      <nav class="tabs" data-i18n-aria-label="nav.label" aria-label="Navegación">
+        <button class="tab active" type="button" aria-current="page" data-view="messages-view" data-i18n="nav.messages">Mensajes</button>
+        <button class="tab" type="button" data-view="compose-view" data-i18n="nav.compose">Redactar</button>
+        <button class="tab" type="button" data-view="files-view" data-i18n="nav.files">Archivos 7+</button>
+      </nav>
+
+      <p id="app-error" class="error banner" role="alert" hidden></p>
+      <p id="app-notice" class="notice banner" role="status" hidden></p>
+      <p id="status-line" class="status-line banner" role="status" hidden></p>
+
+      <section id="messages-view" class="view card">
+        <div class="section-heading">
+          <div>
+            <h2 data-i18n="messages.title">Mensajes</h2>
+            <p class="muted" data-i18n="messages.subtitle">Índice activo de la BBS</p>
+          </div>
+          <button id="refresh-messages" class="secondary" type="button" data-i18n="common.refresh">Actualizar</button>
+        </div>
+        <form id="message-filters" class="filters">
+          <label>
+            <span data-i18n="messages.search">Buscar</span>
+            <input name="q" type="search" data-i18n-placeholder="messages.searchPlaceholder" placeholder="Título, origen, destino o ruta">
+          </label>
+          <label>
+            <span data-i18n="messages.type">Tipo</span>
+            <select name="type">
+              <option value="" data-i18n="messages.allTypes">Todos</option>
+              <option value="B" data-i18n="messages.bulletin">Boletines</option>
+              <option value="P" data-i18n="messages.private">Privados</option>
+              <option value="T" data-i18n="messages.ntsmessages">NTS</option>
+            </select>
+          </label>
+          <button class="secondary filter-submit" type="submit" data-i18n="common.apply">Aplicar</button>
+        </form>
+        <div class="table-wrap">
+          <table class="messages-table">
+            <caption class="sr-only" data-i18n="messages.tableCaption">Lista de mensajes de la BBS</caption>
+            <thead>
+              <tr>
+                <th class="col-number" data-i18n="messages.number">Nº</th>
+                <th class="col-type" data-i18n="messages.type">Tipo</th>
+                <th class="col-status" data-i18n="messages.status">Estado</th>
+                <th class="col-size" data-i18n="messages.size">Tamaño</th>
+                <th class="col-from" data-i18n="messages.from">De</th>
+                <th class="col-to" data-i18n="messages.to">Para</th>
+                <th class="col-route" data-i18n="messages.route">Ruta</th>
+                <th class="col-subject" data-i18n="messages.subject">Asunto</th>
+                <th class="col-date" data-i18n="messages.date">Fecha</th>
+                <th class="col-actions" data-i18n="messages.actions">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="messages-body"></tbody>
+          </table>
+        </div>
+        <div id="messages-empty" class="empty" hidden data-i18n="messages.empty">No hay mensajes para mostrar.</div>
+        <div class="pagination">
+          <button id="previous-page" class="secondary" type="button" data-i18n="common.previous">Anterior</button>
+          <span id="page-label"></span>
+          <button id="next-page" class="secondary" type="button" data-i18n="common.next">Siguiente</button>
+        </div>
+      </section>
+
+      <section id="message-detail" class="view card" hidden>
+        <div class="section-heading">
+          <div>
+            <button id="close-detail" class="link-button" type="button" data-i18n="common.back">← Volver</button>
+            <h2 id="detail-title"></h2>
+          </div>
+        </div>
+        <dl id="detail-meta" class="message-meta"></dl>
+        <div class="detail-actions">
+          <button id="detail-reply" class="secondary" type="button" data-i18n="messages.reply">Responder</button>
+          <button id="detail-copy" class="secondary" type="button" data-i18n="messages.copy">Copiar</button>
+        </div>
+        <div id="detail-routing" class="routing"></div>
+        <section id="detail-attachments" class="attachments" hidden data-i18n-aria-label="messages.attachments" aria-label="Adjuntos">
+          <h3 data-i18n="messages.attachments">Adjuntos</h3>
+          <div id="detail-attachments-list" class="attachment-list"></div>
+        </section>
+        <pre id="detail-body" class="message-body"></pre>
+      </section>
+
+      <section id="compose-view" class="view card" hidden>
+        <div class="section-heading">
+          <div>
+            <h2 data-i18n="compose.title">Redactar mensaje</h2>
+            <p id="compose-subtitle" class="muted" data-i18n="compose.subtitle">LinBPQ importará los mensajes desde Mail/Import/mail.in.</p>
+            <p id="compose-context" class="compose-context" role="status" hidden></p>
+          </div>
+        </div>
+        <form id="compose-form" class="compose-form">
+          <div class="form-grid">
+            <label>
+              <span data-i18n="compose.kind">Tipo</span>
+              <select name="type">
+                <option value="P" data-i18n="messages.private">Privado</option>
+                <option value="B" data-i18n="messages.bulletin">Boletín</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="compose.to">Destinatario</span>
+              <input name="to" required maxlength="6" autocomplete="off">
+            </label>
+            <label>
+              <span data-i18n="compose.route">Ruta (opcional)</span>
+              <input name="via" maxlength="40" autocomplete="off">
+            </label>
+            <label class="wide">
+              <span data-i18n="compose.subject">Asunto</span>
+              <input name="title" required maxlength="60">
+            </label>
+            <label class="wide">
+              <span data-i18n="compose.body">Mensaje</span>
+              <textarea name="body" rows="14" required></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="primary" type="submit" data-i18n="compose.send">Enviar a LinBPQ</button>
+            <button id="clear-compose" class="secondary" type="reset" data-i18n="common.clear">Limpiar</button>
+          </div>
+          <p id="compose-error" class="error" role="alert" hidden></p>
+        </form>
+      </section>
+
+      <section id="files-view" class="view card" hidden>
+        <div class="section-heading">
+          <div>
+            <h2 data-i18n="files.title">Archivos decodificados 7+</h2>
+            <p class="muted" data-i18n="files.subtitle">Contenido disponible en HTML/7plus</p>
+          </div>
+          <button id="refresh-files" class="secondary" type="button" data-i18n="common.refresh">Actualizar</button>
+        </div>
+        <div class="files-toolbar">
+          <label class="files-search">
+            <span data-i18n="files.search">Buscar archivos</span>
+            <input id="files-search" type="search" data-i18n-placeholder="files.searchPlaceholder" placeholder="Nombre, MIME o extensión">
+          </label>
+          <div class="files-controls">
+            <label>
+              <span data-i18n="files.sort">Ordenar</span>
+              <select id="files-sort">
+                <option value="date" data-i18n="files.sortDate">Fecha (recientes)</option>
+                <option value="name" data-i18n="files.sortName">Nombre</option>
+                <option value="type" data-i18n="files.sortType">Tipo</option>
+              </select>
+            </label>
+            <div id="files-view-mode" class="view-toggle" role="group" data-i18n-aria-label="files.viewMode" aria-label="Modo de vista">
+              <button id="files-cards" class="active" type="button" data-mode="cards" aria-pressed="true" data-i18n="files.cards">Tarjetas</button>
+              <button id="files-list" type="button" data-mode="list" aria-pressed="false" data-i18n="files.list">Lista</button>
+            </div>
+          </div>
+        </div>
+        <div id="files-grid" class="gallery"></div>
+        <div id="files-empty" class="empty" hidden data-i18n="files.empty">No hay archivos decodificados.</div>
+      </section>
+    </section>
+  </main>
+
+  <div id="file-lightbox" class="lightbox" role="dialog" aria-modal="true" aria-labelledby="file-lightbox-title" hidden>
+    <div id="file-lightbox-backdrop" class="lightbox-backdrop"></div>
+    <div class="lightbox-panel">
+      <div class="lightbox-header">
+        <h2 id="file-lightbox-title"></h2>
+        <button id="file-lightbox-close" class="lightbox-close" type="button" data-i18n-aria-label="files.close" aria-label="Cerrar vista previa">×</button>
+      </div>
+      <img id="file-lightbox-image" class="lightbox-image" alt="">
+      <div class="lightbox-footer">
+        <a id="file-lightbox-download" class="primary" data-i18n="files.download">Descargar</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="i18n/es.js"></script>
+  <script src="i18n/en.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

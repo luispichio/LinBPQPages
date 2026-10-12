@@ -1,0 +1,8 @@
+R:261010/1202Z 12345@UPLINK.#AREA.LOCAL
+
+Received: by fixture gateway
+From: gateway@example.invalid
+Subject: RFC822 fixture
+Content-Type: text/plain; charset="windows-1252"
+
+Mensaje recibido desde una pasarela.
