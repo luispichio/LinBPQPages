@@ -1,6 +1,6 @@
 # LinBPQPages
 
-A web application for reading and composing messages on a [LinBPQ](https://www.cantab.net/users/john.wiseman/Documents/) instance. It is a sister project to [LinFBBPages](../LinFBBPages/), with direct access to the LinBPQ filesystem.
+A web application for reading and composing messages on a [LinBPQ](https://www.cantab.net/users/john.wiseman/Documents/) instance. It is a sister project to [LinFBBPages](https://github.com/luispichio/LinFBBPages), with direct access to the LinBPQ filesystem.
 
 ## Features
 
