@@ -143,15 +143,15 @@ Users : { N0CALL = "Name^Pass"; }; // comentario final
 
 func TestMailBodyFBBRFC822AndB2Attachments(t *testing.T) {
 	store := &Store{root: fixtureRoot(t)}
-	plain, err := store.ReadMessageBody(1, true)
+	plain, err := store.ReadMessageBody(1)
 	if err != nil || len(plain.Routing) != 1 || len(plain.Path) != 1 || plain.Path[0] != "TSTBBS" || !strings.Contains(plain.Body, "Segunda línea") {
 		t.Fatalf("plain body=%+v err=%v", plain, err)
 	}
-	mail, err := store.ReadMessageBody(3, false)
+	mail, err := store.ReadMessageBody(3)
 	if err != nil || !strings.Contains(mail.Body, "pasarela") || len(mail.Routing) != 1 || len(mail.Path) != 1 || mail.Path[0] != "UPLINK" {
 		t.Fatalf("RFC822 body=%+v err=%v", mail, err)
 	}
-	b2, err := store.ReadMessageBody(2, true)
+	b2, err := store.ReadMessageBody(2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,10 +162,10 @@ func TestMailBodyFBBRFC822AndB2Attachments(t *testing.T) {
 	if attachment.Name != "nota.bin" || attachment.ContentType != "application/octet-stream" || string(attachment.Data) != "\x01\x02\x03\x04" {
 		t.Fatalf("unexpected attachment: %+v data=%v", attachment, attachment.Data)
 	}
-	if _, err := store.ReadMessageBody(99, false); !errors.Is(err, os.ErrNotExist) {
+	if _, err := store.ReadMessageBody(99); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("missing message error=%v, want os.ErrNotExist", err)
 	}
-	legacyText, err := parseMessageBody([]byte("Caf\xe9\r\n"), false)
+	legacyText, err := parseMessageBody([]byte("Caf\xe9\r\n"))
 	if err != nil || legacyText.Body != "Café" {
 		t.Fatalf("Windows-1252 body=%q err=%v", legacyText.Body, err)
 	}

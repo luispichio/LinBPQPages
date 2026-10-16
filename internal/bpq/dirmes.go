@@ -91,12 +91,12 @@ func parseDirmes(data []byte, layout Layout) (int64, []Message, error) {
 			Number:    readSigned(record, layout.Number),
 			Size:      readSigned(record, layout.Length),
 			Date:      readSigned(record, layout.DateReceived),
-			BBSFrom:   readText(record, layout.BBSFrom, utf8Text),
-			Route:     readText(record, layout.Via, utf8Text),
-			From:      readText(record, layout.From, utf8Text),
-			To:        readText(record, layout.To, utf8Text),
-			BID:       readText(record, layout.BID, utf8Text),
-			Title:     readText(record, layout.Title, utf8Text),
+			BBSFrom:   readText(record, layout.BBSFrom),
+			Route:     readText(record, layout.Via),
+			From:      readText(record, layout.From),
+			To:        readText(record, layout.To),
+			BID:       readText(record, layout.BID),
+			Title:     readText(record, layout.Title),
 			B2Flags:   record[layout.B2Flags.Offset],
 			UTF8:      utf8Text,
 			CreatedAt: readSigned(record, layout.DateCreated),
@@ -129,7 +129,10 @@ func readSigned(record []byte, field Field) int64 {
 	}
 }
 
-func readText(record []byte, field Field, isUTF8 bool) string {
+// readText extrae un campo de texto del índice. El indicador UTF8 no decide la
+// codificación: se detecta el contenido igual que en los cuerpos de mensaje,
+// porque LinBPQ no lo marca al importar mensajes UTF-8.
+func readText(record []byte, field Field) string {
 	value := record[field.Offset : field.Offset+field.Size]
 	for index, character := range value {
 		if character == 0 {
@@ -138,10 +141,7 @@ func readText(record []byte, field Field, isUTF8 bool) string {
 		}
 	}
 	value = bytesTrimRight(value, " \t\r\n")
-	if isUTF8 {
-		return validUTF8(value)
-	}
-	return decodeWindows1252(value)
+	return decodeAuto(value)
 }
 
 func cloneMessages(messages []Message) []Message {

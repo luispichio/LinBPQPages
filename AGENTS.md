@@ -46,13 +46,13 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed record layouts, `linmail.c
 
 - `internal/bpq/layout.go` is the sole definition of offsets. **Never hardcode offsets in parsers.**
 - Record 0 is the control record; validate its slot count and the expected `(N+1)*308` file size. Records with `type==0` or `status==0` are never messages; sort API results by descending number.
-- Ignore legacy `x*` date fields; the current date fields are int64. Respect the index's UTF-8/Windows-1252 indicator.
+- Ignore legacy `x*` date fields; the current date fields are int64. Decode index text by content, not by the `UTF8` flag: valid UTF-8 is preserved, and otherwise LinBPQ's `TrytoGuessCode` heuristic chooses CP437, CP1251, or Windows-1252 (see `ARCHITECTURE.md`). LinBPQ does not set that flag when importing messages and ignores it when rendering its own webmail.
 - LinBPQ replaces the whole index and Housekeeping may renumber `.mes` files. Reload when size/mtime changes, ensure the file remains stable during a read, and keep serving the last valid cache if a replacement is incomplete. Never cache a durable message-number-to-file mapping.
 
 ### Message bodies in `Mail/`
 
 - A body may be opened only if its number exists in the current index and the user is allowed to view it.
-- Parse initial `R:` headers and the blank line; the rest may be text, RFC822, or MIME multipart/B2. Use the standard library for MIME charset and transfer-encoding handling.
+- Parse initial `R:` headers and the blank line; the rest may be text, RFC822, or MIME multipart/B2. Use the standard library for MIME charset and transfer-encoding handling. A declared MIME charset always wins; without one (or with an unknown one), decode by content with the same rule as the index.
 - Attachments are embedded in `.mes` files; never extract them. Serve content only from an endpoint that rechecks the session and visibility. Serve only safe raster formats inline; HTML/SVG must be attachments and must never execute.
 - `K`/Housekeeping may leave an index entry without a `.mes` file: return metadata with `body_available=false`, not a fatal error.
 - Limit `.mes` reads to 16 MiB; bound MIME parts and nesting depth.
@@ -90,4 +90,4 @@ API: `POST /api/login`, `POST /api/logout`, `GET /api/me`, `GET /api/status`, `G
 
 ## Required tests
 
-Run `go test ./...` and `go vet ./...`. Maintain coverage for DIRMES offsets, invalid headers/slots, CP1252/UTF-8, authentication and flags, privacy, MIME base64/quoted-printable/attachments, queue validation, concurrent appends, symlinks, and path traversal. Tests must not depend on `/home/luis/linbpq` or real passwords/data.
+Run `go test ./...` and `go vet ./...`. Maintain coverage for DIRMES offsets, invalid headers/slots, CP1252/CP437/CP1251/UTF-8 detection, authentication and flags, privacy, MIME base64/quoted-printable/attachments, queue validation, concurrent appends, symlinks, and path traversal. Tests must not depend on `/home/luis/linbpq` or real passwords/data.

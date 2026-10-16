@@ -337,7 +337,7 @@ func (s *Server) message(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "mensaje no encontrado")
 		return
 	}
-	body, err := s.store.ReadMessageBody(number, message.UTF8)
+	body, err := s.store.ReadMessageBody(number)
 	bodyAvailable := err == nil
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		s.logger.Printf("message %d body: %v", number, err)
@@ -377,7 +377,7 @@ func (s *Server) attachment(w http.ResponseWriter, r *http.Request, number int64
 		writeError(w, http.StatusNotFound, "mensaje no encontrado")
 		return
 	}
-	attachment, err := s.store.ReadAttachment(number, index, message.UTF8)
+	attachment, err := s.store.ReadAttachment(number, index)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			writeError(w, http.StatusNotFound, "adjunto no encontrado")

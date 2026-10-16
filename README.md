@@ -7,6 +7,7 @@ A web application for reading and composing messages on a [LinBPQ](https://www.c
 - Sign in with a callsign and password from `BBSUsers` in `linmail.cfg`.
 - Browse a paginated, searchable message list from `DIRMES.SYS`, following LinBPQ privacy rules.
 - Read messages from `Mail/m_%06d.mes`, including `R:` headers, RFC822/MIME content, and downloadable B2 attachments (with safe previews for raster images).
+- Automatic character-set detection for legacy messages (UTF-8, CP437, CP1251, Windows-1252), including DOS box-drawing art.
 - Compose private messages (`SP`) or bulletins (`SB`) through `Mail/Import/mail.in`, with an indication of the configured import interval.
 - Browse decoded 7+ files from `HTML/7plus/`.
 - Responsive interface with English and Spanish translations.
@@ -55,7 +56,7 @@ Fixtures are for tests and are read-only. To run the application, point `--bpq-d
 
 ## HTTP API
 
-The API uses JSON. All endpoints except `POST /api/login` require a session. Private responses use `Cache-Control: no-store`.
+The API uses UTF-8 JSON. All endpoints except `POST /api/login` require a session. Private responses use `Cache-Control: no-store`.
 
 | Method | Path | Description |
 |---|---|---|
@@ -106,7 +107,6 @@ design/fixtures/        # synthetic/sanitized examples for tests and development
   - Infinite scrolling
 - Messaging
   - File sending (7+ conversion)
-  - CP437 Font (?)
 - Read-message history and filtering by "unread"
 - Login without password (read-only)
   - User request form

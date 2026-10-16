@@ -25,7 +25,7 @@ type mimeParts struct {
 	files     []Attachment
 }
 
-func (s *Store) ReadMessageBody(number int64, utf8Text bool) (MessageBody, error) {
+func (s *Store) ReadMessageBody(number int64) (MessageBody, error) {
 	if number <= 0 || number > int64(^uint32(0)>>1) {
 		return MessageBody{}, os.ErrNotExist
 	}
@@ -41,16 +41,16 @@ func (s *Store) ReadMessageBody(number int64, utf8Text bool) (MessageBody, error
 	if err != nil {
 		return MessageBody{}, fmt.Errorf("leer mensaje %d: %w", number, err)
 	}
-	return parseMessageBody(data, utf8Text)
+	return parseMessageBody(data)
 }
 
-func parseMessageBody(data []byte, utf8Text bool) (MessageBody, error) {
+func parseMessageBody(data []byte) (MessageBody, error) {
 	normalized := normalizeMessageBytes(data)
 	lines := bytes.Split(normalized, []byte{'\n'})
 	routing := make([]string, 0)
 	bodyStart := 0
 	for bodyStart < len(lines) && bytes.HasPrefix(lines[bodyStart], []byte("R:")) {
-		routing = append(routing, decodeTextBytes(lines[bodyStart], "", utf8Text))
+		routing = append(routing, decodeTextBytes(lines[bodyStart], ""))
 		bodyStart++
 	}
 	if bodyStart < len(lines) && len(lines[bodyStart]) == 0 {
@@ -69,14 +69,14 @@ func parseMessageBody(data []byte, utf8Text bool) (MessageBody, error) {
 	}
 
 	if !looksLikeMailMessage(bodyBytes) {
-		result.Body = decodeTextBytes(bodyBytes, "", utf8Text)
+		result.Body = decodeTextBytes(bodyBytes, "")
 		return result, nil
 	}
 	message, err := mail.ReadMessage(bufio.NewReader(bytes.NewReader(bodyBytes)))
 	if err != nil {
 		// Una cabecera RFC822 malformada no debe volver ilegible el mensaje;
 		// mostrar el contenido como texto plano.
-		result.Body = decodeTextBytes(bodyBytes, "", utf8Text)
+		result.Body = decodeTextBytes(bodyBytes, "")
 		return result, nil
 	}
 	entityBody, err := io.ReadAll(io.LimitReader(message.Body, maxMailSize+1))
@@ -84,7 +84,7 @@ func parseMessageBody(data []byte, utf8Text bool) (MessageBody, error) {
 		return MessageBody{}, errors.New("cuerpo MIME supera el límite permitido")
 	}
 	parts := mimeParts{}
-	if err := walkMIME(textproto.MIMEHeader(message.Header), entityBody, utf8Text, &parts, 0); err != nil {
+	if err := walkMIME(textproto.MIMEHeader(message.Header), entityBody, &parts, 0); err != nil {
 		return MessageBody{}, fmt.Errorf("parsear partes MIME: %w", err)
 	}
 	if len(parts.plainText) > 0 {
@@ -127,7 +127,7 @@ func looksLikeMailMessage(data []byte) bool {
 	return false
 }
 
-func walkMIME(header textproto.MIMEHeader, raw []byte, utf8Text bool, result *mimeParts, depth int) error {
+func walkMIME(header textproto.MIMEHeader, raw []byte, result *mimeParts, depth int) error {
 	if depth > 8 {
 		return errors.New("anidamiento MIME demasiado profundo")
 	}
@@ -174,7 +174,7 @@ func walkMIME(header textproto.MIMEHeader, raw []byte, utf8Text bool, result *mi
 			if int64(len(partData)) > maxMailSize {
 				return errors.New("parte MIME supera el límite permitido")
 			}
-			if err := walkMIME(part.Header, partData, utf8Text, result, depth+1); err != nil {
+			if err := walkMIME(part.Header, partData, result, depth+1); err != nil {
 				return err
 			}
 		}
@@ -188,7 +188,7 @@ func walkMIME(header textproto.MIMEHeader, raw []byte, utf8Text bool, result *mi
 	}
 	attachment := strings.EqualFold(disposition, "attachment") || filename != ""
 	if strings.HasPrefix(mediaType, "text/") && !attachment {
-		text := decodeTextBytes(decoded, params["charset"], utf8Text)
+		text := decodeTextBytes(decoded, params["charset"])
 		if mediaType == "text/plain" {
 			result.plainText = append(result.plainText, text)
 		} else if mediaType == "text/html" {
@@ -249,21 +249,22 @@ func decodeTransferEncoding(data []byte, encoding string) ([]byte, error) {
 	}
 }
 
-func decodeTextBytes(data []byte, charset string, alreadyUTF8 bool) string {
+// decodeTextBytes convierte texto a UTF-8. Un charset MIME declarado manda;
+// sin declaración (o con una desconocida) se detecta el contenido con
+// decodeAuto, igual que el webmail de LinBPQ.
+func decodeTextBytes(data []byte, charset string) string {
 	charset = strings.ToLower(strings.TrimSpace(strings.Trim(charset, "\"'")))
 	switch charset {
 	case "utf-8", "utf8":
 		return validUTF8(data)
-	case "us-ascii", "ascii", "iso-8859-1", "latin1", "latin-1", "windows-1252", "cp1252", "":
-		if alreadyUTF8 && charset == "" {
-			return validUTF8(data)
-		}
+	case "us-ascii", "ascii", "iso-8859-1", "latin1", "latin-1", "windows-1252", "cp1252":
 		return decodeWindows1252(data)
+	case "cp437", "ibm437", "437":
+		return decodeCP437(data)
+	case "cp1251", "windows-1251":
+		return decodeCP1251(data)
 	default:
-		if alreadyUTF8 {
-			return validUTF8(data)
-		}
-		return decodeWindows1252(data)
+		return decodeAuto(data)
 	}
 }
 
@@ -307,11 +308,11 @@ func routingPath(routing []string) []string {
 	return path
 }
 
-func (s *Store) ReadAttachment(number int64, index int, utf8Text bool) (Attachment, error) {
+func (s *Store) ReadAttachment(number int64, index int) (Attachment, error) {
 	if index < 0 {
 		return Attachment{}, os.ErrNotExist
 	}
-	body, err := s.ReadMessageBody(number, utf8Text)
+	body, err := s.ReadMessageBody(number)
 	if err != nil {
 		return Attachment{}, err
 	}

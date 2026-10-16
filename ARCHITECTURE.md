@@ -35,7 +35,7 @@ The source of truth is `struct MsgInfo` in `linbpq.source/bpqmail.h` (currently 
 | `Spare[37]` | 271 | 37 |
 | **Total** | | **308** |
 
-`internal/bpq/layout.go` is the only definition of these offsets; parsers must not hardcode them. Record 0 is the control record: `status=2`, `number` is the number of slots (`N`), and `length` is the last assigned message number. The file size must be `(N+1)*308`. Slots with `type==0` or `status==0` are not messages. The API sorts messages by descending number. Ignore the legacy `x*` fields; current dates are int64 values at the offsets shown above. If `UTF8==0`, index text fields use Windows-1252; if `UTF8!=0`, preserve valid UTF-8.
+`internal/bpq/layout.go` is the only definition of these offsets; parsers must not hardcode them. Record 0 is the control record: `status=2`, `number` is the number of slots (`N`), and `length` is the last assigned message number. The file size must be `(N+1)*308`. Slots with `type==0` or `status==0` are not messages. The API sorts messages by descending number. Ignore the legacy `x*` fields; current dates are int64 values at the offsets shown above. The `UTF8` column is informational: decode index text fields by content, as described under “Character sets”.
 
 LinBPQ replaces the entire `DIRMES.SYS` file (`SaveMessageDatabase`, `BBSUtilities.c`), and Housekeeping may renumber `.mes` files. Reload when size or modification time changes, verify that the file did not change while being read, and serve the last valid cache if a replacement is incomplete. Do not keep a durable mapping between a message number and a body file.
 
@@ -47,6 +47,16 @@ LinBPQ replaces the entire `DIRMES.SYS` file (`SaveMessageDatabase`, `BBSUtiliti
 - Attachments are embedded in the `.mes` file; never extract them to disk. Expose content only through an endpoint that rechecks the session and message visibility. Serve only safe raster formats inline; serve HTML/SVG as attachments and never execute them.
 - `K`/Housekeeping can leave an index entry without a `.mes` file. Return metadata with `body_available=false` rather than treating this as a fatal error.
 - Limit `.mes` reads to 16 MiB; bound MIME parts and nesting depth.
+
+## Character sets
+
+Text without a declared charset is decoded by content, mirroring LinBPQ's own webmail (`WebMail.c`, `BBSHTMLConfig.c`, `MailTCP.c`):
+
+1. A declared MIME `charset` always wins. Recognized names are `utf-8`, `us-ascii`, `iso-8859-1`/`latin1`/`windows-1252`, `cp437`/`ibm437`, and `cp1251`.
+2. If the bytes are valid UTF-8, they are preserved as-is. This is the usual case for messages composed through modern terminals, the LinBPQ web interface, or this application's API.
+3. Otherwise the legacy codepage is guessed with a port of `TrytoGuessCode` (`utf8Routines.c`): CP437 when more than 90 % of the bytes above `0x7F` fall in the box-drawing range `0xB0–0xDF`; CP1251 when the high bytes outnumber the ASCII letters; Windows-1252 otherwise.
+
+The CP437 and CP1251 rune tables in `internal/bpq/text.go` are transcribed from `utf8Routines.c:CP437toUTF8Data` and `CP1251toUTF8Data`, and the guesser keeps LinBPQ's integer thresholds so both interfaces render the same message the same way. The `UTF8` field of `DIRMES.SYS` is metadata only: LinBPQ neither sets it when importing messages nor consults it when rendering, so it must not decide the decoding. Outbound messages queued in `Mail/Import/mail.in` are written as UTF-8, and the JSON API is always UTF-8.
 
 ## Users in `linmail.cfg`
 
